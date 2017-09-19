@@ -15,11 +15,5 @@ class VOICECHAT_API AVC_PlayerController : public APlayerController
 
 		AVC_PlayerController();
 
-	UFUNCTION(BlueprintCallable, Category = "Voice")
-	void StartTalking();
-	UFUNCTION(BlueprintCallable, Category = "Voice")
-	void StopTalking();
-
-
 
 };

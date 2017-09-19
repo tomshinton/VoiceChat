@@ -40,6 +40,18 @@ AVoiceChatCharacter::AVoiceChatCharacter()
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+
+	RangeComp = CreateDefaultSubobject<USphereComponent>(TEXT("Range Component"));
+	RangeComp->SetSphereRadius(Range);
+	RangeComp->SetupAttachment(RootComponent);
+	RangeComp->bGenerateOverlapEvents = true;
+
+	RangeComp->OnComponentBeginOverlap.AddDynamic(this, &AVoiceChatCharacter::AddPlayerToComms);
+	RangeComp->OnComponentEndOverlap.AddDynamic(this, &AVoiceChatCharacter::RemovePlayerFromComms);
+
+
+
+
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -126,4 +138,49 @@ void AVoiceChatCharacter::MoveRight(float Value)
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
 	}
+}
+
+/*
+
+Voice Chat
+
+*/
+
+void AVoiceChatCharacter::AddPlayerToComms(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	AVoiceChatCharacter* OverlappedActor = Cast<AVoiceChatCharacter>(OtherActor);
+	if (OverlappedActor)
+	{
+		Server_GetControllerInVoiceCommRange(OtherActor);
+	}
+}
+
+
+void AVoiceChatCharacter::RemovePlayerFromComms(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::MakeRandomColor(), "Actor End Overlapped");
+}
+
+void AVoiceChatCharacter::Server_GetControllerInVoiceCommRange_Implementation(AActor* OverlappedActor)
+{
+	ACharacter* OverlappedChar = Cast<ACharacter>(OverlappedActor);
+	if (OverlappedActor)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "Overlapped with character, getting controller serverside");
+
+		APlayerController* OverlappedController = Cast<APlayerController>(OverlappedChar->GetController());
+		if (OverlappedController)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, OverlappedController->PlayerState->PlayerName);
+		}
+		else
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, "Could not get overlapped controller");
+		}
+	}
+}
+
+bool AVoiceChatCharacter::Server_GetControllerInVoiceCommRange_Validate(AActor* OverlappedActor)
+{
+	return true;
 }
