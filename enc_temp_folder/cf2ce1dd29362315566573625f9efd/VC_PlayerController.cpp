@@ -51,10 +51,9 @@ void AVC_PlayerController::Server_AddPlayerToComms_Implementation(AActor * Overl
 			NearbyPlayers.AddUnique(OverlappedController->PlayerState->PlayerName);
 			ClientUnmutePlayer(OverlappedController->PlayerState->UniqueId);
 		}
-	
-		if (NearbyPlayers.Num() > 0)
+		else
 		{
-			//ToggleSpeaking(true);
+			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, "Could not get overlapped controller");
 		}
 	}
 }
@@ -81,14 +80,9 @@ void AVC_PlayerController::Server_RemoveControllerFromComms_Implementation(AActo
 		APlayerController* LeftController = Cast<APlayerController>(LeavingActor->GetController());
 		if (LeftController)
 		{
+			GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Green, LeftController->PlayerState->PlayerName);
 			NearbyPlayers.Remove(LeftController->PlayerState->PlayerName);
 			ClientMutePlayer(LeftController->PlayerState->UniqueId);
-		}
-
-
-		if (NearbyPlayers.Num() <= 0)
-		{
-			//ToggleSpeaking(false);
 		}
 	}
 }
