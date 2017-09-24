@@ -15,10 +15,9 @@ UVoiceChat_GameInst::UVoiceChat_GameInst(const FObjectInitializer& ObjectInitial
 
 void UVoiceChat_GameInst::Init()
 {
-	Super::Init();
-
-	
+	Super::Init();	
 }
+
 
 #pragma region BlueprintCallables
 void UVoiceChat_GameInst::StartOnlineGame()
@@ -41,28 +40,28 @@ void UVoiceChat_GameInst::JoinSession()
 {
 	ULocalPlayer* const Player = GetFirstGamePlayer();
 
-	// Just a SearchResult where we can save the one we want to use, for the case we find more than one!
 	FOnlineSessionSearchResult SearchResult;
-
-	// If the Array is not empty, we can go through it
-	if (SessionSearch->SearchResults.Num() > 0)
+/*
+	if (SearchResult.OwningUserId != Player->GetPreferredUniqueNetId())
 	{
-		for (int32 i = 0; i < SessionSearch->SearchResults.Num(); i++)
-		{
-			// To avoid something crazy, we filter sessions from ourself
-			if (SessionSearch->SearchResults[i].Session.OwningUserId != Player->GetPreferredUniqueNetId())
-			{
-				SearchResult = SessionSearch->SearchResults[i];
+		JoinSession(Player->GetPreferredUniqueNetId(), GameSessionName, SearchResult);
+		break;
+	}
+	*/
+}
 
-				// Once we found sounce a Session that is not ours, just join it. Instead of using a for loop, you could
-				// use a widget where you click on and have a reference for the GameSession it represents which you can use
-				// here
-				JoinSession(Player->GetPreferredUniqueNetId(), GameSessionName, SearchResult);
-				break;
-			}
-		}
+void UVoiceChat_GameInst::JoinSessionFromLobby(FBlueprintSessionWrapper inSession)
+{
+	ULocalPlayer* const Player = GetFirstGamePlayer();
+
+	FOnlineSessionSearchResult SearchResult = inSession.Session_actual;
+
+	if (SearchResult.Session.OwningUserId != Player->GetPreferredUniqueNetId())
+	{
+		JoinSession(Player->GetPreferredUniqueNetId(), GameSessionName, SearchResult);
 	}
 }
+
 
 void UVoiceChat_GameInst::DestroySession()
 {
@@ -95,6 +94,33 @@ void UVoiceChat_GameInst::FindSteamGames()
 	ULocalPlayer* const Player = GetFirstGamePlayer();
 
 	FindSessions(Player->GetPreferredUniqueNetId(), false, true);
+}
+
+
+
+TArray<FBlueprintSessionWrapper> UVoiceChat_GameInst::BuildLobbysideData()
+{
+	TArray<FBlueprintSessionWrapper> FoundSessions;
+
+	FBlueprintSessionWrapper newSession;
+
+	
+	for (int32 i = 0; i < SessionSearch->SearchResults.Num(); i++)
+	{
+		FOnlineSessionSearchResult currSearch = SessionSearch->SearchResults[i];
+
+		newSession.Session_actual = currSearch;
+		newSession.SessionName = currSearch.Session.OwningUserName + "'s Game";
+		newSession.SessionMap = currSearch.Session.SessionSettings.Settings.FindRef("MAPNAME").Data.ToString();
+		newSession.SessionPing = currSearch.PingInMs;
+		newSession.MaxPlayers = currSearch.Session.SessionSettings.NumPublicConnections;
+		newSession.CurrPlayers = currSearch.Session.SessionSettings.NumPublicConnections - currSearch.Session.NumOpenPublicConnections;
+		
+		FoundSessions.Add(newSession);
+	}
+
+
+	return FoundSessions;
 }
 
 #pragma endregion
@@ -248,7 +274,7 @@ void UVoiceChat_GameInst::FindSessions(TSharedPtr<const FUniqueNetId> UserId, bo
 
 void UVoiceChat_GameInst::OnFindSessionsComplete(bool bWasSuccessful)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("OFindSessionsComplete bSuccess: %d"), bWasSuccessful));
+	//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("OFindSessionsComplete bSuccess: %d"), bWasSuccessful));
 
 	// Get OnlineSubsystem we want to work with
 	IOnlineSubsystem* const OnlineSub = IOnlineSubsystem::Get();
@@ -262,7 +288,7 @@ void UVoiceChat_GameInst::OnFindSessionsComplete(bool bWasSuccessful)
 			Sessions->ClearOnFindSessionsCompleteDelegate_Handle(OnFindSessionsCompleteDelegateHandle);
 
 			// Just debugging the Number of Search results. Can be displayed in UMG or something later on
-			GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("Num Search Results: %d"), SessionSearch->SearchResults.Num()));
+		//	GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("Num Search Results: %d"), SessionSearch->SearchResults.Num()));
 
 			// If we have found at least 1 session, we just going to debug them. You could add them to a list of UMG Widgets, like it is done in the BP version!
 			if (SessionSearch->SearchResults.Num() > 0)
@@ -273,7 +299,8 @@ void UVoiceChat_GameInst::OnFindSessionsComplete(bool bWasSuccessful)
 				{
 					// OwningUserName is just the SessionName for now. I guess you can create your own Host Settings class and GameSession Class and add a proper GameServer Name here.
 					// This is something you can't do in Blueprint for example!
-					GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("Session Number: %d | Sessionname: %s "), SearchIdx + 1, *(SessionSearch->SearchResults[SearchIdx].Session.OwningUserName)));
+					//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("Session Number: %d | Sessionname: %s "), SearchIdx + 1, *(SessionSearch->SearchResults[SearchIdx].Session.OwningUserName)));
+					onBuildLobbyList.Broadcast();
 				}
 			}
 		}
@@ -308,7 +335,7 @@ bool UVoiceChat_GameInst::JoinSession(TSharedPtr<const FUniqueNetId> UserId, FNa
 
 void UVoiceChat_GameInst::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("OnJoinSessionComplete %s, %d"), *SessionName.ToString(), static_cast<int32>(Result)));
+	//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("OnJoinSessionComplete %s, %d"), *SessionName.ToString(), static_cast<int32>(Result)));
 
 	// Get the OnlineSubsystem we want to work with
 	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
@@ -344,7 +371,7 @@ void UVoiceChat_GameInst::OnJoinSessionComplete(FName SessionName, EOnJoinSessio
 
 void UVoiceChat_GameInst::OnDestroySessionComplete(FName SessionName, bool bWasSuccessful)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("OnDestroySessionComplete %s, %d"), *SessionName.ToString(), bWasSuccessful));
+	//GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Red, FString::Printf(TEXT("OnDestroySessionComplete %s, %d"), *SessionName.ToString(), bWasSuccessful));
 
 	// Get the OnlineSubsystem we want to work with
 	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();

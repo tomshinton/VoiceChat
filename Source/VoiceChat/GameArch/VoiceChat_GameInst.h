@@ -4,11 +4,35 @@
 
 #include "Engine/GameInstance.h"
 #include "VC_PlayerController.h"
+#include "FindSessionsCallbackProxy.h"
 #include "VoiceChat_GameInst.generated.h"
 
-/**
- *
- */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnBuildLobbyList);
+
+USTRUCT(BlueprintType)
+struct FBlueprintSessionWrapper
+{
+	GENERATED_BODY()
+
+	FOnlineSessionSearchResult Session_actual;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Session Blueprint Wrapper")
+	FString SessionName;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Session Blueprint Wrapper")
+	FString SessionMap;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Session Blueprint Wrapper")
+	int32 SessionPing;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Session Blueprint Wrapper")
+	int32 MaxPlayers;
+
+	UPROPERTY(BlueprintReadWrite, Category = "Session Blueprint Wrapper")
+	int32 CurrPlayers;
+
+};
+
 UCLASS()
 class VOICECHAT_API UVoiceChat_GameInst : public UGameInstance
 {
@@ -35,6 +59,11 @@ class VOICECHAT_API UVoiceChat_GameInst : public UGameInstance
 	UFUNCTION(BlueprintCallable, Category = "Networking | Steam")
 		void FindSteamGames();
 
+	UFUNCTION(BlueprintCallable, Category = "Networking | Lobby")
+		void JoinSessionFromLobby(FBlueprintSessionWrapper inSession);
+
+	UFUNCTION(BlueprintCallable, Category = "Networking | Lobby")
+		TArray<FBlueprintSessionWrapper> BuildLobbysideData();
 
 
 #pragma endregion
@@ -63,7 +92,11 @@ class VOICECHAT_API UVoiceChat_GameInst : public UGameInstance
 
 #pragma region FindSession
 	void FindSessions(TSharedPtr<const FUniqueNetId> UserId, bool bIsLAN, bool bIsPresence);
+
+
+
 	FOnFindSessionsCompleteDelegate OnFindSessionsCompleteDelegate;
+
 	FDelegateHandle OnFindSessionsCompleteDelegateHandle;
 	TSharedPtr<class FOnlineSessionSearch> SessionSearch;
 	void OnFindSessionsComplete(bool bWasSuccessful);
@@ -78,6 +111,7 @@ class VOICECHAT_API UVoiceChat_GameInst : public UGameInstance
 
 #pragma endregion
 
+	
 #pragma region DestroySession
 
 	FOnDestroySessionCompleteDelegate OnDestroySessionCompleteDelegate;
@@ -85,5 +119,9 @@ class VOICECHAT_API UVoiceChat_GameInst : public UGameInstance
 	void OnDestroySessionComplete(FName SessionName, bool bWasSuccessful);
 
 #pragma endregion
+
+
+	UPROPERTY(BlueprintAssignable, Category = "Networking | Lobby")
+	FOnBuildLobbyList onBuildLobbyList;
 
 };
