@@ -60,6 +60,10 @@ void UVoiceChat_GameInst::JoinSessionFromLobby(FBlueprintSessionWrapper inSessio
 	{
 		JoinSession(Player->GetPreferredUniqueNetId(), GameSessionName, SearchResult);
 	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Green, "This machine is also the host of that game");
+	}
 }
 
 

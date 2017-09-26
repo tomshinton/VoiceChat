@@ -5,6 +5,7 @@
 
 
 
+
 AVC_PlayerController::AVC_PlayerController()
 {
 	bReplicates = true;
@@ -12,6 +13,8 @@ AVC_PlayerController::AVC_PlayerController()
 
 void AVC_PlayerController::BeginPlay()
 {
+
+	Super::BeginPlay();
 	//Setup overlap delegate
 	AVoiceChatCharacter* ControlledPawn = Cast<AVoiceChatCharacter>(GetPawn());
 	if (ControlledPawn && ControlledPawn->RangeComp)
@@ -34,7 +37,7 @@ void AVC_PlayerController::GetLifetimeReplicatedProps(TArray< FLifetimeProperty 
 void AVC_PlayerController::AddToPlayerComms(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	AVoiceChatCharacter* OverlappedActor = Cast<AVoiceChatCharacter>(OtherActor);
-	if (OverlappedActor)
+	if (OverlappedActor && Cast<USphereComponent>(OtherComp))
 	{
 		Server_AddPlayerToComms(OtherActor);
 	}
@@ -50,11 +53,12 @@ void AVC_PlayerController::Server_AddPlayerToComms_Implementation(AActor * Overl
 		{
 			NearbyPlayers.AddUnique(OverlappedController->PlayerState->PlayerName);
 			ClientUnmutePlayer(OverlappedController->PlayerState->UniqueId);
+			newNotification(OverlappedController->PlayerState->PlayerName + " has entered comms range");
 		}
 	
 		if (NearbyPlayers.Num() > 0)
 		{
-			//ToggleSpeaking(true);
+			Client_EnableVoice(true);
 		}
 	}
 }
@@ -67,7 +71,7 @@ bool AVC_PlayerController::Server_AddPlayerToComms_Validate(AActor* OverlappedAc
 void AVC_PlayerController::RemovePlayerFromComms(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	AVoiceChatCharacter* OverlappedActor = Cast<AVoiceChatCharacter>(OtherActor);
-	if (OverlappedActor)
+	if (OverlappedActor && Cast<USphereComponent>(OtherComp))
 	{
 		Server_RemoveControllerFromComms(OtherActor);
 	}
@@ -83,12 +87,13 @@ void AVC_PlayerController::Server_RemoveControllerFromComms_Implementation(AActo
 		{
 			NearbyPlayers.Remove(LeftController->PlayerState->PlayerName);
 			ClientMutePlayer(LeftController->PlayerState->UniqueId);
-		}
+			newNotification(LeftController->PlayerState->PlayerName + " has left comms range");
+		}	
 
 
 		if (NearbyPlayers.Num() <= 0)
 		{
-			//ToggleSpeaking(false);
+			Client_EnableVoice(false);
 		}
 	}
 }
@@ -97,3 +102,9 @@ bool AVC_PlayerController::Server_RemoveControllerFromComms_Validate(AActor* Lef
 {
 	return true;
 }
+
+void AVC_PlayerController::Client_EnableVoice_Implementation(bool bNewVoice)
+{
+	ToggleSpeaking(bNewVoice);
+}
+

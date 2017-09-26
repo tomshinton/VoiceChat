@@ -17,7 +17,7 @@ public:
 		USphereComponent* RangeComp;
 
 		UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Voice Chat")
-		float Range = 200;
+		float Range = 500;
 
 #pragma endregion
 

@@ -4,6 +4,7 @@
 
 #include "GameFramework/PlayerController.h"
 #include "VoiceChatCharacter.h"
+#include "VoiceChatGameMode.h"
 #include "GameFramework/PlayerMuteList.h"
 #include "VC_PlayerController.generated.h"
 
@@ -44,4 +45,9 @@ public:
 	void Server_RemoveControllerFromComms_Implementation(AActor* LeftActor);
 	bool Server_RemoveControllerFromComms_Validate(AActor* LeftActor);
 
+	UFUNCTION(BlueprintCallable, BlueprintImplementableEvent, Category = "Networking | Notifications")
+	void newNotification(const FString& newNotification);
+	
+	UFUNCTION(Client, Reliable)
+	void Client_EnableVoice(bool bNewVoice);
 };
